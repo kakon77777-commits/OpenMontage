@@ -220,7 +220,7 @@ Expected output:
 projects/evedirector-drc-search/renders/drc-search.mp4
 ```
 
-## Tests
+## Tests and CI acceptance
 
 ```bash
 python -m pytest tests/test_markdown_to_video.py -q
@@ -237,9 +237,22 @@ The focused tests cover:
 7. alignment of grounding, script and Remotion scene counts;
 8. the explicit zero-external-asset contract.
 
-GitHub Actions compiles the converter, runs `validate`, and runs these tests. It
-does not launch a Chromium render in CI during L2; MP4 and FFprobe acceptance is
-a local runtime check.
+GitHub Actions performs two ordered jobs:
+
+1. compile the converter, validate every source anchor, and run the focused tests;
+2. install Remotion, render the complete DRC Search MP4, run FFprobe, and upload
+   the video together with the source, grounding, script, scene-plan, asset,
+   edit, props, and render-report audit artifacts.
+
+The uploaded artifact is named:
+
+```text
+evedirector-l2-drc-search
+```
+
+CI acceptance does not replace the final Windows-local check. It establishes a
+reproducible Linux render floor before the same project is opened in local
+Backlot.
 
 ## Editing the video
 
@@ -279,23 +292,25 @@ These are later phases, not hidden claims of the current milestone.
 
 ## Acceptance criteria
 
-Repository implementation:
+Repository and CI implementation:
 
 1. a real EVEMISSLAB Markdown excerpt exists;
 2. eight scenes are grounded to it;
 3. `validate` succeeds;
 4. focused tests pass;
 5. `build` produces all standard artifacts and checkpoints;
-6. no API key is read or required.
+6. no API key is read or required;
+7. Remotion creates `drc-search.mp4` in CI;
+8. FFprobe verifies its video stream and duration;
+9. the MP4 and audit artifacts are uploaded.
 
-Local runtime acceptance:
+Local acceptance:
 
-7. Backlot opens the project;
-8. Remotion creates `drc-search.mp4`;
-9. FFprobe verifies its video stream and duration.
+10. the same project renders on the user's local runtime;
+11. Backlot opens and observes the generated project.
 
-The project must not claim a successful render until items 7–9 have been run on
-an actual local runtime.
+The project must not claim local-runtime completion until items 10–11 are run on
+the actual target machine.
 
 ## Boundary to L3
 
