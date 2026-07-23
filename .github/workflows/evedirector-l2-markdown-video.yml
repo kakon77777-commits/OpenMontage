@@ -1,0 +1,93 @@
+name: EveDirector L2 Markdown video
+
+on:
+  push:
+    branches:
+      - evedirector-l2-markdown-video
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "scripts/markdown_to_video.py"
+      - "scripts/evedirector-l2.ps1"
+      - "examples/drc-search-video/**"
+      - "tests/test_markdown_to_video.py"
+      - "docs/EVEDIRECTOR_L2_MARKDOWN_VIDEO.md"
+      - ".github/workflows/evedirector-l2-markdown-video.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  grounding-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install focused dependencies
+        run: python -m pip install pytest pyyaml jsonschema
+
+      - name: Compile converter
+        run: python -m py_compile scripts/markdown_to_video.py
+
+      - name: Validate source anchors
+        run: python scripts/markdown_to_video.py --json validate
+
+      - name: Run L2 tests
+        run: python -m pytest tests/test_markdown_to_video.py -q
+
+  render-zero-key-video:
+    needs: grounding-contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: remotion-composer/package-lock.json
+
+      - name: Install Python dependencies
+        run: python -m pip install pyyaml jsonschema
+
+      - name: Install Remotion dependencies
+        working-directory: remotion-composer
+        run: npm ci
+
+      - name: Render and FFprobe DRC Search
+        run: python scripts/markdown_to_video.py --force render
+
+      - name: Show verified render report
+        run: cat projects/evedirector-drc-search/artifacts/render_report.json
+
+      - name: Upload L2 video and audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evedirector-l2-drc-search
+          if-no-files-found: error
+          retention-days: 30
+          path: |
+            projects/evedirector-drc-search/renders/drc-search.mp4
+            projects/evedirector-drc-search/artifacts/source_manifest.json
+            projects/evedirector-drc-search/artifacts/grounding_manifest.json
+            projects/evedirector-drc-search/artifacts/script.json
+            projects/evedirector-drc-search/artifacts/scene_plan.json
+            projects/evedirector-drc-search/artifacts/asset_manifest.json
+            projects/evedirector-drc-search/artifacts/edit_decisions.json
+            projects/evedirector-drc-search/artifacts/remotion_props.json
+            projects/evedirector-drc-search/artifacts/render_report.json
