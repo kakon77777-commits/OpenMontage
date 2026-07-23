@@ -6,6 +6,7 @@ source line before artifacts or render props are written.
 
 Default example:
 
+    python scripts/markdown_to_video.py validate
     python scripts/markdown_to_video.py build
     python scripts/markdown_to_video.py render
     python scripts/markdown_to_video.py board
@@ -23,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -65,26 +67,30 @@ def source_title(lines: list[str]) -> str:
 
 
 def locate_claim(lines: list[str], needle: str) -> dict[str, Any]:
+    """Locate one grounding phrase and preserve real one-based line positions."""
     wanted = normalize_text(needle)
     if not wanted:
         raise ValueError("source_contains cannot be empty")
 
     for index, line in enumerate(lines):
-        if wanted in normalize_text(line):
-            start = index + 1
-            excerpt_lines = [line.strip()]
-            cursor = index + 1
-            while cursor < len(lines) and len(excerpt_lines) < 3:
-                candidate = lines[cursor].strip()
-                if candidate and not candidate.startswith("#"):
-                    excerpt_lines.append(candidate)
-                cursor += 1
-            return {
-                "line_start": start,
-                "line_end": start + len(excerpt_lines) - 1,
-                "excerpt": " ".join(excerpt_lines),
-                "query": needle,
-            }
+        if wanted not in normalize_text(line):
+            continue
+
+        excerpt_entries: list[tuple[int, str]] = [(index + 1, line.strip())]
+        cursor = index + 1
+        while cursor < len(lines) and len(excerpt_entries) < 3:
+            candidate = lines[cursor].strip()
+            if candidate and not candidate.startswith("#"):
+                excerpt_entries.append((cursor + 1, candidate))
+            cursor += 1
+
+        return {
+            "line_start": excerpt_entries[0][0],
+            "line_end": excerpt_entries[-1][0],
+            "excerpt": " ".join(text for _line_no, text in excerpt_entries),
+            "query": needle,
+        }
+
     raise ValueError(f"Source claim not found: {needle!r}")
 
 
@@ -93,21 +99,32 @@ def validate_timeline(scenes: list[dict[str, Any]]) -> float:
         raise ValueError("Spec must contain at least one scene")
 
     previous_end = 0.0
+    seen_ids: set[str] = set()
     for scene in scenes:
+        scene_id = str(scene.get("id", ""))
+        if not scene_id or scene_id in seen_ids:
+            raise ValueError(f"Scene ids must be non-empty and unique: {scene_id!r}")
+        seen_ids.add(scene_id)
+
         cut = scene.get("cut")
         if not isinstance(cut, dict):
-            raise ValueError(f"Scene {scene.get('id')} has no cut object")
+            raise ValueError(f"Scene {scene_id} has no cut object")
         start = float(cut["in_seconds"])
         end = float(cut["out_seconds"])
-        if start != previous_end:
+        if abs(start - previous_end) > 1e-9:
             raise ValueError(
-                f"Timeline must be contiguous: scene {scene.get('id')} starts at {start}, "
+                f"Timeline must be contiguous: scene {scene_id} starts at {start}, "
                 f"expected {previous_end}"
             )
         if end <= start:
-            raise ValueError(f"Scene {scene.get('id')} has non-positive duration")
+            raise ValueError(f"Scene {scene_id} has non-positive duration")
         previous_end = end
     return previous_end
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, Path]:
@@ -131,6 +148,7 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         project_id,
         title=str(spec["title"]),
         pipeline_type=str(spec.get("pipeline_type", "animated-explainer")),
+        pipeline_dir=PROJECTS_DIR,
         style_playbook=str(spec.get("theme", "flat-motion-graphics")),
     )
     source_dir = project_dir / "source"
@@ -154,12 +172,16 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         start = float(cut["in_seconds"])
         end = float(cut["out_seconds"])
         narration = str(scene["narration"]).strip()
+        if not narration:
+            raise ValueError(f"Scene {scene_id} has empty narration")
+
         script_sections.append(
             {
                 "id": scene_id,
                 "text": narration,
                 "start_seconds": start,
                 "end_seconds": end,
+                "source_ref": f"artifacts/grounding_manifest.json#{scene_id}",
             }
         )
 
@@ -173,7 +195,11 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
                 "end_seconds": end,
                 "script_section_id": scene_id,
                 "narrative_role": (
-                    "establish_context" if start == 0 else "resolution" if end == total_duration else "deliver_payload"
+                    "establish_context"
+                    if start == 0
+                    else "resolution"
+                    if abs(end - total_duration) <= 1e-9
+                    else "deliver_payload"
                 ),
                 "information_role": narration,
                 "required_assets": [],
@@ -190,7 +216,7 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
                 "in_seconds": start,
                 "out_seconds": end,
                 "layer": "primary",
-                "reason": f"Source-grounded scene from {source_path.name}",
+                "reason": f"Source-grounded Remotion component scene from {source_path.name}",
             }
         )
 
@@ -218,6 +244,10 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         "title": str(spec["title"]),
         "total_duration_seconds": total_duration,
         "sections": script_sections,
+        "metadata": {
+            "source_manifest": "artifacts/source_manifest.json",
+            "grounding_manifest": "artifacts/grounding_manifest.json",
+        },
     }
     scene_plan = {
         "version": "1.0",
@@ -226,6 +256,15 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         "metadata": {
             "source_grounding_manifest": "artifacts/grounding_manifest.json",
             "source_sha256": source_hash,
+        },
+    }
+    asset_manifest = {
+        "version": "1.0",
+        "assets": [],
+        "total_cost_usd": 0.0,
+        "metadata": {
+            "component_only": True,
+            "description": "No external media assets; scenes use checked-in Remotion components.",
         },
     }
     edit_decisions = {
@@ -249,13 +288,12 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         "grounding_manifest.json": grounding_manifest,
         "script.json": script,
         "scene_plan.json": scene_plan,
+        "asset_manifest.json": asset_manifest,
         "edit_decisions.json": edit_decisions,
         "remotion_props.json": remotion_props,
     }
     for filename, payload in artifacts.items():
-        (artifact_dir / filename).write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        write_json(artifact_dir / filename, payload)
 
     pipeline_type = str(spec.get("pipeline_type", "animated-explainer"))
     theme = str(spec.get("theme", "flat-motion-graphics"))
@@ -279,6 +317,21 @@ def prepare_project(spec: dict[str, Any], *, force: bool = False) -> dict[str, P
         pipeline_type=pipeline_type,
         style_playbook=theme,
         human_approved=True,
+    )
+    write_checkpoint(
+        PROJECTS_DIR,
+        project_id,
+        "assets",
+        "completed",
+        {"asset_manifest": asset_manifest},
+        pipeline_type=pipeline_type,
+        style_playbook=theme,
+        human_approved=True,
+        cost_snapshot={
+            "total_spent_usd": 0.0,
+            "total_reserved_usd": 0.0,
+            "budget_remaining_usd": 0.0,
+        },
     )
     write_checkpoint(
         PROJECTS_DIR,
@@ -318,6 +371,46 @@ def find_command(*names: str) -> str:
     raise RuntimeError(f"Required command not found: {', '.join(names)}")
 
 
+def probe_render(output: Path) -> dict[str, Any]:
+    """Require FFprobe to confirm the render is a readable video container."""
+    ffprobe = find_command("ffprobe", "ffprobe.exe")
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=codec_type,codec_name,width,height,r_frame_rate",
+            "-of",
+            "json",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    payload = json.loads(result.stdout)
+    streams = payload.get("streams") or []
+    video = next((stream for stream in streams if stream.get("codec_type") == "video"), None)
+    if not isinstance(video, dict):
+        raise RuntimeError(f"FFprobe found no video stream: {output}")
+
+    duration = float((payload.get("format") or {}).get("duration") or 0)
+    if duration <= 0:
+        raise RuntimeError(f"FFprobe reported a non-positive duration: {duration}")
+
+    rate = str(video.get("r_frame_rate") or "0/1")
+    numerator, denominator = (rate.split("/", 1) + ["1"])[:2]
+    fps = float(numerator) / float(denominator or 1)
+    return {
+        "duration_seconds": duration,
+        "codec": str(video.get("codec_name") or "unknown"),
+        "resolution": f"{int(video.get('width') or 0)}x{int(video.get('height') or 0)}",
+        "fps": fps,
+        "file_size_bytes": output.stat().st_size,
+    }
+
+
 def render_project(spec: dict[str, Any], paths: dict[str, Path]) -> Path:
     npx = find_command("npx.cmd", "npx", "npx.exe")
     if not (COMPOSER_DIR / "node_modules").is_dir():
@@ -326,6 +419,7 @@ def render_project(spec: dict[str, Any], paths: dict[str, Path]) -> Path:
 
     output = paths["output"]
     output.parent.mkdir(parents=True, exist_ok=True)
+    started = time.perf_counter()
     command = [
         npx,
         "remotion",
@@ -342,21 +436,49 @@ def render_project(spec: dict[str, Any], paths: dict[str, Path]) -> Path:
     if not output.is_file() or output.stat().st_size == 0:
         raise RuntimeError(f"Render did not create a non-empty file: {output}")
 
-    duration = validate_timeline(spec["scenes"])
+    probe = probe_render(output)
+    target_duration = validate_timeline(spec["scenes"])
+    duration_delta = abs(probe["duration_seconds"] - (target_duration + 1.0))
+    warnings: list[str] = []
+    if duration_delta > 2.0:
+        warnings.append(
+            f"Rendered duration {probe['duration_seconds']:.3f}s differs from the "
+            f"Explainer target with padding ({target_duration + 1.0:.3f}s)."
+        )
+
+    try:
+        relative_output = output.relative_to(paths["project_dir"])
+    except ValueError:
+        relative_output = output
+
     render_report = {
         "version": "1.0",
         "outputs": [
             {
-                "path": str(output.relative_to(paths["project_dir"])).replace("\\", "/"),
+                "path": str(relative_output).replace("\\", "/"),
                 "format": "mp4",
-                "resolution": "1920x1080",
-                "duration_seconds": duration,
+                "codec": probe["codec"],
+                "resolution": probe["resolution"],
+                "fps": probe["fps"],
+                "duration_seconds": probe["duration_seconds"],
+                "file_size_bytes": probe["file_size_bytes"],
             }
         ],
+        "render_time_seconds": round(time.perf_counter() - started, 3),
+        "warnings": warnings,
+        "verification_notes": [
+            "Output exists and is non-empty.",
+            "FFprobe found a readable video stream.",
+            "No cloud API key was used by the L2 renderer.",
+        ],
+        "render_grammar": "explainer-data",
+        "metadata": {
+            "target_scene_duration_seconds": target_duration,
+            "remotion_final_padding_seconds": 1.0,
+            "source_grounding_manifest": "artifacts/grounding_manifest.json",
+        },
     }
-    (paths["project_dir"] / "artifacts" / "render_report.json").write_text(
-        json.dumps(render_report, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    write_json(paths["project_dir"] / "artifacts" / "render_report.json", render_report)
     write_checkpoint(
         PROJECTS_DIR,
         str(spec["project_id"]),
@@ -366,13 +488,22 @@ def render_project(spec: dict[str, Any], paths: dict[str, Path]) -> Path:
         pipeline_type=str(spec.get("pipeline_type", "animated-explainer")),
         style_playbook=str(spec.get("theme", "flat-motion-graphics")),
         human_approved=True,
-        metadata={"rendered_on": date.today().isoformat(), "zero_key": True},
+        metadata={"rendered_on": date.today().isoformat(), "zero_key": True, "ffprobe": True},
     )
     return output
 
 
 def open_board(project_id: str) -> None:
-    subprocess.run([sys.executable, "-m", "backlot", "open", project_id], cwd=REPO_ROOT, check=True)
+    project_dir = PROJECTS_DIR / project_id
+    if not project_dir.is_dir():
+        raise FileNotFoundError(
+            f"Project does not exist: {project_dir}. Run the build command first."
+        )
+    subprocess.run(
+        [sys.executable, "-m", "backlot", "open", project_id],
+        cwd=REPO_ROOT,
+        check=True,
+    )
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -392,10 +523,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "validate":
         source = resolve_repo_path(spec["source_path"])
         lines = source.read_text(encoding="utf-8").splitlines()
-        validate_timeline(spec["scenes"])
+        duration = validate_timeline(spec["scenes"])
         refs = [locate_claim(lines, scene["source_contains"]) for scene in spec["scenes"]]
-        payload = {"valid": True, "source": str(source), "scene_count": len(refs)}
-        print(json.dumps(payload, ensure_ascii=False, indent=2) if args.json else "L2 spec is source-grounded and valid.")
+        payload = {
+            "valid": True,
+            "source": str(source),
+            "scene_count": len(refs),
+            "timeline_seconds": duration,
+        }
+        print(
+            json.dumps(payload, ensure_ascii=False, indent=2)
+            if args.json
+            else "L2 spec is source-grounded and valid."
+        )
         return 0
 
     if args.command == "board":
@@ -424,7 +564,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"L2 project ready: {paths['project_dir']}")
         print(f"Grounding manifest: {paths['grounding']}")
         if result["rendered"]:
-            print(f"Rendered MP4: {result['output']}")
+            print(f"Rendered and FFprobe-verified MP4: {result['output']}")
         else:
             print(f"Render command: {sys.executable} scripts/markdown_to_video.py render")
     return 0
