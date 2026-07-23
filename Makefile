@@ -6,7 +6,7 @@ PIP = $(RUN_PYTHON) -m pip
 
 .DEFAULT_GOAL := setup
 
-.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv local-doctor local-smoke local-demo local-board local-first
+.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv local-doctor local-smoke local-demo local-board local-first l2-validate l2-build l2-render l2-board l2-all
 
 # ---- Virtual environment ----
 
@@ -135,6 +135,23 @@ local-board: ensure-venv
 
 local-first: ensure-venv
 	$(RUN_PYTHON) scripts/evedirector_local_first.py all --name code-to-screen
+
+# ---- EveDirector L2: grounded Markdown to video ----
+
+l2-validate: ensure-venv
+	$(RUN_PYTHON) scripts/markdown_to_video.py validate
+
+l2-build: ensure-venv
+	$(RUN_PYTHON) scripts/markdown_to_video.py --force build
+
+l2-render: ensure-venv
+	$(RUN_PYTHON) scripts/markdown_to_video.py render
+
+l2-board: ensure-venv
+	$(RUN_PYTHON) scripts/markdown_to_video.py board
+
+l2-all: ensure-venv
+	$(RUN_PYTHON) scripts/markdown_to_video.py --force all
 
 lint: ensure-venv
 	$(RUN_PYTHON) -m py_compile tools/base_tool.py
