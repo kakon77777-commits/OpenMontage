@@ -5,6 +5,7 @@ on:
     branches:
       - evedirector-l2-markdown-video
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - "scripts/markdown_to_video.py"
       - "scripts/evedirector-l2.ps1"
