@@ -1,0 +1,15 @@
+services:
+  backlot:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    restart: unless-stopped
+    environment:
+      BACKLOT_HOST: 0.0.0.0
+      BACKLOT_PORT: 4750
+      OPENMONTAGE_PROJECTS_DIR: /data/projects
+      OPENMONTAGE_SOURCE_URL: https://github.com/kakon77777-commits/OpenMontage
+    ports:
+      - "4750:4750"
+    volumes:
+      - ./projects:/data/projects
