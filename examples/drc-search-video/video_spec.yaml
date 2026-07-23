@@ -1,0 +1,163 @@
+version: 1
+project_id: evedirector-drc-search
+pipeline_type: animated-explainer
+title: DRC Search — From Ranked Links to Cognitive Maps
+author: Neo.K / EveMissLab
+source_path: examples/drc-search-video/source/drc_search_whitepaper_v0_1_excerpt.md
+theme: flat-motion-graphics
+composition: Explainer
+output_path: projects/evedirector-drc-search/renders/drc-search.mp4
+language: en
+
+scenes:
+  - id: drc-title
+    source_contains: "DRC Search：生成式 AI 時代的非線性搜尋"
+    narration: "Search has spent decades returning ranked links. DRC Search asks a different question: can search generate an explorable map of understanding?"
+    cut:
+      type: hero_title
+      in_seconds: 0
+      out_seconds: 6
+      text: DRC Search
+      subtitle: From Ranked Links to Cognitive Maps
+      backgroundColor: "#0F172A"
+
+  - id: old-vs-drc
+    source_contains: "傳統搜尋擅長「找到文件」，但不擅長「生成理解」"
+    narration: "Traditional search is good at finding documents. The user still performs the reading, comparison, and synthesis. DRC Search turns those results into a cognitive field."
+    cut:
+      type: comparison
+      in_seconds: 6
+      out_seconds: 15
+      title: Finding documents is not the same as generating understanding
+      leftLabel: Traditional Search
+      leftValue: Ranked links
+      rightLabel: DRC Search
+      rightValue: Cognitive map
+      accentColor: "#A78BFA"
+      backgroundColor: "#0F172A"
+      color: "#F8FAFC"
+
+  - id: divergence
+    source_contains: "關鍵字不是命令，而是種子"
+    narration: "D means Divergence. A query is treated as a seed. The system expands it across meanings, tasks, languages, sources, risks, and competing viewpoints."
+    cut:
+      type: callout
+      in_seconds: 15
+      out_seconds: 25
+      title: "D — Divergence"
+      text: A query is a seed, not a command. Expand meanings, tasks, languages, sources and viewpoints.
+      callout_type: tip
+      accentColor: "#22D3EE"
+      backgroundColor: "#0F172A"
+      color: "#F8FAFC"
+
+  - id: resonance
+    source_contains: "使用者—AI—內容"
+    narration: "R means Resonance. Results are not judged only by keyword similarity. They are scored against current intent, context, source trust, novelty, and structural value."
+    cut:
+      type: callout
+      in_seconds: 25
+      out_seconds: 35
+      title: "R — Resonance"
+      text: Match the user, the current task, trusted sources and the structure of the emerging map.
+      callout_type: info
+      accentColor: "#F59E0B"
+      backgroundColor: "#0F172A"
+      color: "#F8FAFC"
+
+  - id: compression
+    source_contains: "壓縮不是簡單摘要"
+    narration: "C means Compression. The goal is not one more paragraph of summary. It is a usable structure: a map, comparison, risk matrix, research path, or executable roadmap."
+    cut:
+      type: callout
+      in_seconds: 35
+      out_seconds: 45
+      title: "C — Compression"
+      text: Turn a large result set into maps, comparisons, risk matrices and next actions.
+      callout_type: quote
+      accentColor: "#34D399"
+      backgroundColor: "#0F172A"
+      color: "#F8FAFC"
+
+  - id: cycle
+    source_contains: "D → R → C → D'"
+    narration: "The process is recursive. Compression creates a new structure. That structure becomes the seed for the next round of divergence."
+    cut:
+      type: terminal_scene
+      in_seconds: 45
+      out_seconds: 57
+      terminalTitle: DRC Search State Machine
+      prompt: ">"
+      accentColor: "#22D3EE"
+      backgroundColor: "#0B0F1A"
+      steps:
+        - kind: cmd
+          text: "diverge(query_seed)"
+          typeSpeed: 0.04
+          holdSeconds: 0.5
+        - kind: out
+          text: "branches: semantic · task · source · language · viewpoint"
+          holdSeconds: 0.7
+        - kind: cmd
+          text: "resonate(branches, intent, trust, context)"
+          typeSpeed: 0.025
+          holdSeconds: 0.5
+        - kind: out
+          text: "selected: high-value structural nodes"
+          holdSeconds: 0.7
+        - kind: cmd
+          text: "compress(nodes) -> cognitive_map"
+          typeSpeed: 0.035
+          holdSeconds: 0.5
+        - kind: out
+          text: "next_seed = cognitive_map"
+          holdSeconds: 0.5
+        - kind: pill
+          text: "D → R → C → D′"
+          color: "#34D399"
+          durationSeconds: 3
+
+  - id: source-anchor
+    source_contains: "AI 可以壓縮，但不能切斷來源"
+    narration: "Compression must not erase evidence. Every node should keep its source anchors, confidence, and path back to the original material."
+    cut:
+      type: callout
+      in_seconds: 57
+      out_seconds: 67
+      title: Source Anchors Are Non-Negotiable
+      text: AI may compress information, but it must not sever the sources.
+      callout_type: warning
+      accentColor: "#EF4444"
+      backgroundColor: "#0F172A"
+      color: "#F8FAFC"
+
+  - id: conclusion
+    source_contains: "可調整、可回溯、可再次發散的理解空間"
+    narration: "DRC Search reframes search as a controllable information field: explorable, verifiable, compressible, and ready to expand again."
+    cut:
+      type: hero_title
+      in_seconds: 67
+      out_seconds: 75
+      text: Search Becomes a Field
+      subtitle: Explorable · Verifiable · Compressible · Recursive
+      backgroundColor: "#0F172A"
+
+overlays:
+  - type: section_title
+    in_seconds: 14.8
+    out_seconds: 18.8
+    text: Divergence
+    subtitle: Expand the search universe
+    accentColor: "#22D3EE"
+  - type: section_title
+    in_seconds: 24.8
+    out_seconds: 28.8
+    text: Resonance
+    subtitle: Find structurally valuable nodes
+    accentColor: "#F59E0B"
+  - type: section_title
+    in_seconds: 34.8
+    out_seconds: 38.8
+    text: Compression
+    subtitle: Generate usable understanding
+    accentColor: "#34D399"
