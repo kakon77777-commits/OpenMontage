@@ -41,6 +41,7 @@ jobs:
       - name: Run L2 tests
         run: python -m pytest tests/test_markdown_to_video.py -q
 
+  # L2 closes only after a real MP4 is rendered and independently inspected.
   render-zero-key-video:
     needs: grounding-contracts
     runs-on: ubuntu-latest
