@@ -1,7 +1,7 @@
 """Backlot CLI.
 
-    python -m backlot open [project-id]   # start server if needed, open browser
-    python -m backlot serve [--port N]    # run the server in the foreground
+    python -m backlot open [project-id]              # start server if needed, open browser
+    python -m backlot serve [--host HOST] [--port N] # run the server in the foreground
 
 ``open`` is idempotent and non-fatal by design: agents call it at pipeline
 initialization and must continue the production even if it fails.
@@ -21,10 +21,21 @@ from backlot import DEFAULT_PORT
 
 
 def _port() -> int:
+    """Resolve the listening port for both local and hosted runtimes.
+
+    ``BACKLOT_PORT`` remains the project-specific setting. ``PORT`` is accepted
+    as a deployment-platform fallback because many container hosts inject it.
+    """
+    raw = os.environ.get("BACKLOT_PORT") or os.environ.get("PORT") or DEFAULT_PORT
     try:
-        return int(os.environ.get("BACKLOT_PORT", DEFAULT_PORT))
-    except ValueError:
+        return int(raw)
+    except (TypeError, ValueError):
         return DEFAULT_PORT
+
+
+def _host() -> str:
+    """Resolve the bind host while preserving localhost as the safe default."""
+    return os.environ.get("BACKLOT_HOST", "127.0.0.1")
 
 
 def _server_alive(port: int) -> bool:
@@ -36,8 +47,17 @@ def _server_alive(port: int) -> bool:
 
 
 def _spawn_server(port: int) -> None:
-    """Start the server as a detached background process."""
-    cmd = [sys.executable, "-m", "backlot", "serve", "--port", str(port)]
+    """Start the server as a detached background process for local ``open``."""
+    cmd = [
+        sys.executable,
+        "-m",
+        "backlot",
+        "serve",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        str(port),
+    ]
     kwargs: dict = {
         "stdout": subprocess.DEVNULL,
         "stderr": subprocess.DEVNULL,
@@ -79,10 +99,10 @@ def cmd_open(project_id: str | None) -> int:
     return 0
 
 
-def cmd_serve(port: int) -> int:
+def cmd_serve(port: int, host: str) -> int:
     import uvicorn
 
-    uvicorn.run("backlot.server:app", host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run("backlot.server:app", host=host, port=port, log_level="warning")
     return 0
 
 
@@ -94,13 +114,14 @@ def main(argv: list[str] | None = None) -> int:
     p_open.add_argument("project_id", nargs="?", default=None)
 
     p_serve = sub.add_parser("serve", help="run the Backlot server in the foreground")
+    p_serve.add_argument("--host", default=_host())
     p_serve.add_argument("--port", type=int, default=_port())
 
     args = parser.parse_args(argv)
     if args.command == "open":
         return cmd_open(args.project_id)
     if args.command == "serve":
-        return cmd_serve(args.port)
+        return cmd_serve(args.port, args.host)
     parser.print_help()
     return 2
 
