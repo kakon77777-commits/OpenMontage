@@ -6,7 +6,7 @@ PIP = $(RUN_PYTHON) -m pip
 
 .DEFAULT_GOAL := setup
 
-.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv
+.PHONY: setup install install-dev install-gpu test test-contracts lint clean preflight demo demo-list hyperframes-doctor hyperframes-warm venv ensure-venv local-doctor local-smoke local-demo local-board local-first
 
 # ---- Virtual environment ----
 
@@ -118,6 +118,23 @@ demo: ensure-venv
 
 demo-list: ensure-venv
 	$(RUN_PYTHON) render_demo.py --list
+
+# ---- EveDirector local-first validation ----
+
+local-doctor: ensure-venv
+	$(RUN_PYTHON) scripts/evedirector_local_first.py doctor
+
+local-smoke: ensure-venv
+	$(RUN_PYTHON) scripts/evedirector_local_first.py smoke
+
+local-demo: ensure-venv
+	$(RUN_PYTHON) scripts/evedirector_local_first.py demo --name code-to-screen
+
+local-board: ensure-venv
+	$(RUN_PYTHON) scripts/evedirector_local_first.py board
+
+local-first: ensure-venv
+	$(RUN_PYTHON) scripts/evedirector_local_first.py all --name code-to-screen
 
 lint: ensure-venv
 	$(RUN_PYTHON) -m py_compile tools/base_tool.py
