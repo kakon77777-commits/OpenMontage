@@ -35,6 +35,7 @@ def test_every_default_scene_resolves_to_source() -> None:
 
     assert len(refs) == 8
     assert all(ref["line_start"] >= 1 for ref in refs)
+    assert all(ref["line_end"] >= ref["line_start"] for ref in refs)
     assert all(ref["excerpt"] for ref in refs)
 
 
@@ -52,16 +53,18 @@ def test_non_contiguous_timeline_is_rejected() -> None:
         MODULE.validate_timeline(scenes)
 
 
+def test_duplicate_scene_ids_are_rejected() -> None:
+    scenes = [
+        {"id": "same", "cut": {"in_seconds": 0, "out_seconds": 4}},
+        {"id": "same", "cut": {"in_seconds": 4, "out_seconds": 8}},
+    ]
+    with pytest.raises(ValueError, match="unique"):
+        MODULE.validate_timeline(scenes)
+
+
 def test_build_writes_grounding_and_openmontage_artifacts(tmp_path, monkeypatch) -> None:
     spec = default_spec()
     monkeypatch.setattr(MODULE, "PROJECTS_DIR", tmp_path)
-
-    original_init = MODULE.init_project
-
-    def local_init(project_id: str, **kwargs):
-        return original_init(project_id, pipeline_dir=tmp_path, **kwargs)
-
-    monkeypatch.setattr(MODULE, "init_project", local_init)
     paths = MODULE.prepare_project(spec, force=True)
 
     artifact_dir = paths["project_dir"] / "artifacts"
@@ -70,6 +73,7 @@ def test_build_writes_grounding_and_openmontage_artifacts(tmp_path, monkeypatch)
         "grounding_manifest.json",
         "script.json",
         "scene_plan.json",
+        "asset_manifest.json",
         "edit_decisions.json",
         "remotion_props.json",
     }
@@ -78,10 +82,15 @@ def test_build_writes_grounding_and_openmontage_artifacts(tmp_path, monkeypatch)
     grounding = json.loads((artifact_dir / "grounding_manifest.json").read_text(encoding="utf-8"))
     props = json.loads((artifact_dir / "remotion_props.json").read_text(encoding="utf-8"))
     script = json.loads((artifact_dir / "script.json").read_text(encoding="utf-8"))
+    assets = json.loads((artifact_dir / "asset_manifest.json").read_text(encoding="utf-8"))
 
     assert len(grounding["scenes"]) == len(props["cuts"]) == len(script["sections"]) == 8
     assert grounding["source_sha256"]
+    assert all(section["source_ref"].startswith("artifacts/grounding_manifest.json#") for section in script["sections"])
+    assert assets["assets"] == []
+    assert assets["metadata"]["component_only"] is True
     assert (paths["project_dir"] / "checkpoint_script.json").is_file()
     assert (paths["project_dir"] / "checkpoint_scene_plan.json").is_file()
+    assert (paths["project_dir"] / "checkpoint_assets.json").is_file()
     assert (paths["project_dir"] / "checkpoint_edit.json").is_file()
     assert (paths["project_dir"] / "checkpoint_compose.json").is_file()
