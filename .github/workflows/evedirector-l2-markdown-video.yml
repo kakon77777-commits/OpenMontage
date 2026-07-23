@@ -42,7 +42,6 @@ jobs:
       - name: Run L2 tests
         run: python -m pytest tests/test_markdown_to_video.py -q
 
-  # L2 closes only after a real MP4 is rendered and independently inspected.
   render-zero-key-video:
     needs: grounding-contracts
     runs-on: ubuntu-latest
@@ -70,19 +69,34 @@ jobs:
         working-directory: remotion-composer
         run: npm ci
 
+      - name: Ensure FFmpeg and FFprobe
+        run: |
+          if ! command -v ffprobe >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
       - name: Render and FFprobe DRC Search
-        run: python scripts/markdown_to_video.py --force render
+        shell: bash
+        run: |
+          set -o pipefail
+          python scripts/markdown_to_video.py --force render 2>&1 | tee evedirector-l2-render.log
 
       - name: Show verified render report
+        if: success()
         run: cat projects/evedirector-drc-search/artifacts/render_report.json
 
-      - name: Upload L2 video and audit artifacts
+      - name: Upload L2 video, audit artifacts, and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: evedirector-l2-drc-search
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 30
           path: |
+            evedirector-l2-render.log
             projects/evedirector-drc-search/renders/drc-search.mp4
             projects/evedirector-drc-search/artifacts/source_manifest.json
             projects/evedirector-drc-search/artifacts/grounding_manifest.json
