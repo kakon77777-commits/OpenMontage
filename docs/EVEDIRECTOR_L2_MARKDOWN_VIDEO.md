@@ -1,45 +1,33 @@
 # EveDirector L2 — Source-Grounded Markdown to Video
 
-This document defines Phase L2 of the EVEMISSLAB OpenMontage fork.
-
-L1 established a zero-key local runtime floor. L2 moves from a generic demo to
-one real EVEMISSLAB Markdown source and turns it into an auditable OpenMontage
-project that can be rendered by the existing Remotion composer.
+Phase L2 moves from the generic zero-key demo in L1 to one real EVEMISSLAB
+Markdown source and a reproducible OpenMontage video project.
 
 ## Selected source
-
-The first source is:
 
 ```text
 DRC Search：生成式 AI 時代的非線性搜尋、共振式爬蟲與認知地圖生成方法
 ```
 
-The source was selected because its central structure is already visual:
+It was selected because its core structure is already visual:
 
 ```text
 Divergence → Resonance → Compression → Divergence'
 ```
 
-It can be represented with motion graphics, comparison cards, callouts and a
-state-machine terminal scene without requiring actors, stock footage, generated
-images or a paid video provider.
-
-The repository contains a source excerpt at:
+The repository keeps the production excerpt at:
 
 ```text
 examples/drc-search-video/source/drc_search_whitepaper_v0_1_excerpt.md
 ```
 
-The excerpt preserves the original core propositions used in the video and is
-explicitly marked as a production excerpt rather than a replacement for the
-full paper.
+The excerpt preserves the propositions used by the video and is explicitly
+marked as a production excerpt, not a replacement for the complete paper.
 
-## L2 goal
-
-L2 proves this path:
+## L2 path
 
 ```text
-Real Markdown source
+Real Markdown
     ↓
 Source anchors
     ↓
@@ -47,107 +35,69 @@ Narration script
     ↓
 Scene plan
     ↓
+Zero-external-asset manifest
+    ↓
 Edit decisions
     ↓
 Remotion props
     ↓
-OpenMontage project
-    ↓
 H.264 MP4
+    ↓
+FFprobe verification
 ```
 
-L2 does not use an LLM, image-generation API, video-generation API or cloud TTS.
-The creative adaptation is stored in a reviewable YAML specification.
-
-## Why the conversion is specification-driven
-
-A fully automatic Markdown summarizer would introduce an untested intelligence
-layer before L3. L2 therefore uses two separate inputs:
-
-1. a real Markdown source;
-2. a human-reviewable `video_spec.yaml` describing which source claims become
-   scenes and how those scenes are rendered.
-
-This keeps the first conversion deterministic. L3 can later replace or assist
-the specification authoring step with a local Agent while retaining the same
-contracts.
+L2 deliberately uses no LLM, image API, video API or cloud TTS. The creative
+adaptation is a human-reviewable YAML specification. L3 may later let a local
+Agent propose that specification while retaining the same contracts.
 
 ## Grounding contract
 
-Every scene in `video_spec.yaml` must declare:
+Every scene in `video_spec.yaml` declares a source phrase:
 
 ```yaml
 source_contains: "a phrase that exists in the Markdown source"
 ```
 
-Before any artifacts are written, the converter:
+Before writing a project, the converter:
 
 1. normalizes Markdown formatting;
 2. finds the phrase in the source;
-3. records its one-based line position;
+3. records the real one-based source line range;
 4. stores a short excerpt;
-5. links that record to the scene ID;
-6. fails the entire build when any scene cannot be grounded.
+5. links the anchor to the scene and script section;
+6. fails closed when any scene is not grounded.
 
-The resulting file is:
+The result is:
 
 ```text
 projects/evedirector-drc-search/artifacts/grounding_manifest.json
 ```
 
-It contains:
+Each script section also carries a `source_ref` back to its grounding record.
+The source is copied into the generated project, and a SHA-256 is stored in
+`source_manifest.json`.
 
-- source SHA-256;
-- scene ID;
-- matching query;
-- source line range;
-- source excerpt.
+## Reference video
 
-The source itself is copied into the generated project so the project remains
-reviewable even when the original example directory later changes.
-
-## Source integrity
-
-The converter writes:
-
-```text
-artifacts/source_manifest.json
-```
-
-The manifest records:
-
-- title;
-- author;
-- original repository path;
-- project-local copy path;
-- SHA-256;
-- source line count.
-
-A later pipeline can compare hashes and determine whether the source changed
-after the video plan was created.
-
-## DRC Search video structure
-
-The reference implementation is a 75-second English-first explainer with eight
+The first specification is a 75-second English-first explainer with eight
 source-grounded scenes:
 
 | Time | Scene | Purpose |
 |---|---|---|
-| 0–6s | DRC Search title | Establish the topic |
-| 6–15s | Traditional Search vs DRC | State the problem and contrast |
-| 15–25s | Divergence | Query as a semantic seed |
-| 25–35s | Resonance | Intent, trust, context and structural value |
-| 35–45s | Compression | Maps, comparisons and actions instead of a flat summary |
-| 45–57s | Recursive state machine | Show `D → R → C → D′` |
-| 57–67s | Source anchors | Preserve evidence and traceability |
+| 0–6s | Title | Introduce DRC Search |
+| 6–15s | Comparison | Ranked links versus cognitive maps |
+| 15–25s | Divergence | A query becomes a semantic seed |
+| 25–35s | Resonance | Intent, context, trust and structural value |
+| 35–45s | Compression | Maps, matrices and next actions |
+| 45–57s | State machine | `D → R → C → D′` |
+| 57–67s | Source anchors | Compression must preserve evidence |
 | 67–75s | Conclusion | Search becomes an information field |
 
-The current on-screen language is English because it is a stable first test for
-the existing Space Grotesk/Remotion composition. The source and grounding
-records remain Chinese. Multilingual typography and narration belong to later
-local production refinement, not to this contract test.
+English on-screen text is used to test the existing Remotion typography without
+adding a font-packaging task to L2. The source and grounding records remain
+Chinese.
 
-## Files
+## Repository files
 
 ```text
 examples/drc-search-video/
@@ -175,48 +125,32 @@ projects/evedirector-drc-search/
 │   ├── grounding_manifest.json
 │   ├── script.json
 │   ├── scene_plan.json
+│   ├── asset_manifest.json
 │   ├── edit_decisions.json
 │   ├── remotion_props.json
 │   └── render_report.json          # after render
 ├── checkpoint_script.json
 ├── checkpoint_scene_plan.json
+├── checkpoint_assets.json
 ├── checkpoint_edit.json
 ├── checkpoint_compose.json
 └── renders/
     └── drc-search.mp4              # after render
 ```
 
+`asset_manifest.json` is intentionally valid but empty. The video uses checked-in
+Remotion components and therefore has no external media assets and zero provider
+cost.
+
 ## Commands
 
-### Cross-platform Python
-
-Validate every source anchor and timeline without writing a project:
+### Python
 
 ```bash
 python scripts/markdown_to_video.py validate
-```
-
-Build OpenMontage artifacts and checkpoints:
-
-```bash
 python scripts/markdown_to_video.py --force build
-```
-
-Build and render the MP4:
-
-```bash
 python scripts/markdown_to_video.py render
-```
-
-Open the generated project in Backlot:
-
-```bash
 python scripts/markdown_to_video.py board
-```
-
-Build, render and open Backlot:
-
-```bash
 python scripts/markdown_to_video.py --force all
 ```
 
@@ -247,35 +181,40 @@ make l2-board
 make l2-all
 ```
 
+## What `validate` proves
+
+- all eight scene IDs are unique;
+- all eight source phrases exist;
+- source line ranges are recoverable;
+- the 75-second timeline is contiguous;
+- no generated project is required.
+
 ## What `build` proves
 
-A successful build proves that:
+- the source is copied and hashed;
+- grounding, script, scene plan, asset manifest, edit decisions and Remotion
+  props are generated;
+- canonical artifacts pass OpenMontage checkpoint validation;
+- standard script, scene-plan, assets, edit and compose checkpoints are written;
+- Backlot has a normal project directory to observe.
 
-- the Markdown source exists;
-- every planned scene resolves to the source;
-- the timeline is contiguous;
-- the source hash and line anchors are recorded;
-- the script artifact is schema-valid;
-- the scene plan artifact is schema-valid;
-- the edit decisions artifact is schema-valid;
-- OpenMontage checkpoints can represent the project;
-- the existing Backlot can observe the production state.
-
-It does not prove that Chromium, Remotion or FFmpeg can render on a particular
+A build does not prove that Chromium, Remotion or FFmpeg can run on a particular
 machine.
 
 ## What `render` proves
 
-A successful render additionally proves that:
+A render only succeeds when:
 
 - Node/npm/npx are available;
-- Remotion dependencies can be installed;
-- the existing `Explainer` composition accepts the generated props;
-- the selected components render together;
-- an actual non-empty H.264 MP4 is created;
-- a schema-valid render report and completed compose checkpoint can be written.
+- the Remotion dependencies are present or can be installed;
+- `Explainer` accepts the generated props;
+- a non-empty H.264 MP4 is created;
+- FFprobe finds a readable video stream and positive duration;
+- the verified codec, resolution, frame rate, duration and file size are written
+  into a schema-valid `render_report.json`;
+- the compose checkpoint advances from `in_progress` to `completed`.
 
-The expected output is:
+Expected output:
 
 ```text
 projects/evedirector-drc-search/renders/drc-search.mp4
@@ -283,95 +222,84 @@ projects/evedirector-drc-search/renders/drc-search.mp4
 
 ## Tests
 
-Focused contract tests cover:
-
-1. the default video is exactly 75 seconds;
-2. the timeline has no gaps or overlaps;
-3. all eight scenes resolve to source anchors;
-4. a fabricated claim fails closed;
-5. generated artifacts and checkpoints exist;
-6. grounding, script and Remotion cut counts remain aligned.
-
-Run:
-
 ```bash
 python -m pytest tests/test_markdown_to_video.py -q
 ```
 
-The GitHub Actions workflow also compiles the converter, validates the source
-anchors and runs the focused tests. It deliberately does not render Chromium in
-CI during this phase; the real MP4 render remains a local runtime acceptance
-check.
+The focused tests cover:
 
-## Editing the first video
+1. a contiguous 75-second timeline;
+2. all eight source anchors;
+3. fail-closed behavior for invented claims;
+4. rejection of timeline gaps;
+5. rejection of duplicate scene IDs;
+6. generation of all artifacts and checkpoints;
+7. alignment of grounding, script and Remotion scene counts;
+8. the explicit zero-external-asset contract.
 
-Change wording or visuals in:
+GitHub Actions compiles the converter, runs `validate`, and runs these tests. It
+does not launch a Chromium render in CI during L2; MP4 and FFprobe acceptance is
+a local runtime check.
+
+## Editing the video
+
+The editable source of truth is:
 
 ```text
 examples/drc-search-video/video_spec.yaml
 ```
 
-Do not edit generated JSON under `projects/` as the source of truth. Generated
-project files are reproducible and are ignored by Git.
+Do not manually maintain generated JSON under `projects/`.
 
-When adding a scene:
+For every new scene:
 
-1. choose a source phrase;
-2. add `source_contains`;
-3. add narration;
-4. add a supported Explainer cut;
-5. keep `in_seconds` contiguous;
+1. select a real source phrase;
+2. declare `source_contains`;
+3. write narration;
+4. select a supported Explainer component;
+5. preserve a contiguous timeline;
 6. run `validate`;
-7. inspect the grounding manifest;
-8. render locally.
+7. inspect `grounding_manifest.json`;
+8. render and inspect locally.
 
-## Current limitations
+## L2 boundaries
 
-L2 intentionally does not provide:
+L2 does not include:
 
-- automatic AI summarization;
-- automatic scene writing;
+- automatic AI summarization or scene writing;
 - local model inference;
-- generated narration audio;
+- narration audio;
+- generated images or generated motion video;
 - Chinese font packaging;
-- generated images or video;
-- source citation overlays inside the final frame;
-- editable timeline UI;
-- infinite canvas;
-- Project Graph.
+- source citation overlays inside frames;
+- Project Graph;
+- editable workflow, infinite canvas or timeline UI.
 
-Those are not defects hidden behind the milestone. They define the boundary
-between L2 and later phases.
+These are later phases, not hidden claims of the current milestone.
 
-## L2 acceptance criteria
+## Acceptance criteria
 
-The implementation portion of L2 is complete when:
+Repository implementation:
 
-1. a real EVEMISSLAB Markdown source is checked in as the selected production
-   excerpt;
-2. the video specification contains eight grounded scenes;
+1. a real EVEMISSLAB Markdown excerpt exists;
+2. eight scenes are grounded to it;
 3. `validate` succeeds;
 4. focused tests pass;
-5. `build` produces all artifacts and checkpoints;
-6. Backlot can open the project;
-7. the local Remotion runtime creates `drc-search.mp4`;
-8. the output can be inspected by FFmpeg;
-9. no API key is used.
+5. `build` produces all standard artifacts and checkpoints;
+6. no API key is read or required.
 
-Items 1–5 are repository contract checks. Items 6–8 are local runtime checks.
-The implementation must not claim a successful MP4 render until the file exists
-and is inspected on an actual runtime.
+Local runtime acceptance:
+
+7. Backlot opens the project;
+8. Remotion creates `drc-search.mp4`;
+9. FFprobe verifies its video stream and duration.
+
+The project must not claim a successful render until items 7–9 have been run on
+an actual local runtime.
 
 ## Boundary to L3
 
-L3 may introduce a local Agent or local language model to propose:
-
-- source excerpts;
-- narration;
-- scene boundaries;
-- component selection;
-- source anchor candidates.
-
-It must emit or update the same reviewable video specification and pass the same
-grounding validator. Local AI assistance must not remove the source contract
-established in L2.
+L3 may introduce a local Agent or local language model to propose excerpts,
+narration, scene boundaries, component choices and anchor candidates. It must
+still emit the same reviewable specification and pass this L2 grounding
+validator. Local AI assistance must not remove source traceability.
