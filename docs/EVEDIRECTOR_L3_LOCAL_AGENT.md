@@ -37,8 +37,13 @@ request.json
 response.txt
 candidate.video_spec.yaml
 candidate.diff
+candidate.unified.diff
 audit.json
 ```
+
+`candidate.diff` is the primary human-review artifact. It reports semantic paths such as `/scenes/divergence/narration`, so YAML serializer formatting does not make an unchanged scene look modified.
+
+`candidate.unified.diff` preserves the raw serialization-level Unified Diff for lower-level audit and debugging. It may contain formatting noise and should not be the main approval view.
 
 `request.json` contains the complete prompt, including the source excerpt and current specification. It remains local under `projects/`, which is excluded from Git. Do not move it into a public repository without reviewing it.
 
@@ -116,13 +121,15 @@ Inspect the latest proposal:
 python scripts/evedirector_local_agent.py --json status --run-id latest
 ```
 
-Open `candidate.diff` and `candidate.video_spec.yaml` from the returned run directory.
+Open `candidate.diff` and `candidate.video_spec.yaml` from the returned run directory. Use `candidate.unified.diff` only when the raw YAML representation must also be inspected.
 
 Validate again after any manual candidate edit:
 
 ```bash
 python scripts/evedirector_local_agent.py --json validate --run-id latest
 ```
+
+Validation refreshes the semantic review Diff, so a human edit remains visible before approval.
 
 Apply only after review:
 
