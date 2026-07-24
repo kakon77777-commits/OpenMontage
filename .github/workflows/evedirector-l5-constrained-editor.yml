@@ -13,9 +13,12 @@ on:
       - "backlot/ui/agent-review-l5.js"
       - "backlot/ui/agent-review.html"
       - "scripts/evedirector_agent/editing.py"
+      - "scripts/evedirector_agent/editing_guard.py"
       - "examples/drc-search-video/local_agent_policy.yaml"
       - "tests/test_evedirector_constrained_editor.py"
+      - "tests/test_evedirector_editor_guard.py"
       - "docs/EVEDIRECTOR_L5_CONSTRAINED_EDITOR.md"
+      - "docs/EVEDIRECTOR_L5_OVERLAY_TIMELINE_GUARD.md"
       - ".github/workflows/evedirector-l5-constrained-editor.yml"
   workflow_dispatch:
 
@@ -40,10 +43,12 @@ jobs:
       - name: Compile L5 modules
         run: |
           python -m py_compile scripts/evedirector_agent/editing.py
+          python -m py_compile scripts/evedirector_agent/editing_guard.py
           python -m py_compile backlot/agent_edit.py
           python -m py_compile backlot/agent_review.py
           python -m py_compile backlot/server.py
           node --check backlot/ui/agent-edit.js
+          node --check backlot/ui/agent-edit-overlay-guard.js
           node --check backlot/ui/agent-review-l5.js
 
       - name: Run L3 L4 and L5 focused tests
@@ -54,6 +59,7 @@ jobs:
             tests/test_evedirector_local_agent.py \
             tests/test_backlot_agent_review.py \
             tests/test_evedirector_constrained_editor.py \
+            tests/test_evedirector_editor_guard.py \
             -q --tb=short > l5-pytest.log 2>&1
           status=$?
           cat l5-pytest.log
@@ -67,6 +73,8 @@ jobs:
           grep -q "canonical_write" backlot/agent_edit.py
           grep -q "blocked_cut_fields" examples/drc-search-video/local_agent_policy.yaml
           grep -q "EDIT <run-id>" docs/EVEDIRECTOR_L5_CONSTRAINED_EDITOR.md
+          grep -q "timeline_editable" scripts/evedirector_agent/editing_guard.py
+          grep -q "absolute-time overlays" docs/EVEDIRECTOR_L5_OVERLAY_TIMELINE_GUARD.md
 
       - name: Upload L5 test diagnostics
         if: always()
