@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
 from lib.paths import REPO_ROOT
 
 SCRIPTS_DIR = REPO_ROOT / "scripts"
+UI_DIR = Path(__file__).resolve().parent / "ui"
 if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
@@ -26,6 +28,15 @@ from evedirector_agent.editing import create_edited_run, editor_contract  # noqa
 from backlot import agent_review as review
 
 router = APIRouter()
+
+
+def _editor_html() -> HTMLResponse:
+    html = (UI_DIR / "agent-edit.html").read_text(encoding="utf-8")
+    for asset in ("agent-edit.css", "agent-edit.js"):
+        path = UI_DIR / asset
+        if path.is_file():
+            html = html.replace(f"/ui/{asset}", f"/ui/{asset}?v={int(path.stat().st_mtime)}")
+    return HTMLResponse(html)
 
 
 def _editable_detail(project_id: str, run_id: str) -> dict[str, Any]:
@@ -76,6 +87,13 @@ def _translate(exc: Exception) -> HTTPException:
     if isinstance(exc, FileNotFoundError):
         return HTTPException(status_code=404, detail=str(exc))
     return HTTPException(status_code=500, detail=str(exc))
+
+
+@router.get("/p/{project_id}/agent-edit/{run_id}")
+async def agent_edit_page(project_id: str, run_id: str) -> HTMLResponse:
+    project_dir = review._safe_project_dir(project_id)
+    review._safe_run(project_dir, run_id)
+    return _editor_html()
 
 
 @router.get("/api/project/{project_id}/agent-edit/{run_id}")
