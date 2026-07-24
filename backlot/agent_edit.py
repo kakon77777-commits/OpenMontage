@@ -23,7 +23,7 @@ if str(SCRIPTS_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_DIR))
 
 from evedirector_agent.common import AgentContractError, load_policy, load_yaml  # noqa: E402
-from evedirector_agent.editing import create_edited_run, editor_contract  # noqa: E402
+from evedirector_agent.editing_guard import create_edited_run, editor_contract  # noqa: E402
 
 from backlot import agent_review as review
 
@@ -32,7 +32,7 @@ router = APIRouter()
 
 def _editor_html() -> HTMLResponse:
     html = (UI_DIR / "agent-edit.html").read_text(encoding="utf-8")
-    for asset in ("agent-edit.css", "agent-edit.js"):
+    for asset in ("agent-edit.css", "agent-edit.js", "agent-edit-overlay-guard.js"):
         path = UI_DIR / asset
         if path.is_file():
             html = html.replace(f"/ui/{asset}", f"/ui/{asset}?v={int(path.stat().st_mtime)}")
@@ -67,7 +67,7 @@ def _editable_detail(project_id: str, run_id: str) -> dict[str, Any]:
         })
 
     detail["editor"] = {
-        "contract": editor_contract(policy),
+        "contract": editor_contract(policy, candidate),
         "project": {
             "title": candidate.get("title"),
             "theme": candidate.get("theme"),
