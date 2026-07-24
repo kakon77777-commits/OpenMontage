@@ -44,6 +44,17 @@ allowed_overlay_fields:
 max_duration_seconds: 180
 max_scene_count: 20
 max_narration_characters: 1200
+editor:
+  allowed_project_fields:
+    - title
+    - theme
+  blocked_cut_fields:
+    - type
+    - in_seconds
+    - out_seconds
+    - steps
+  min_scene_duration_seconds: 0.5
+  max_operations_per_run: 50
 network:
   local_only_default: true
   allowed_schemes:
