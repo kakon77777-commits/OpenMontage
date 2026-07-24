@@ -7,9 +7,13 @@
 <link rel="stylesheet" href="/ui/board.css">
 </head>
 <body>
+<a id="agent-review-link" href="#" style="position:fixed;right:18px;bottom:18px;z-index:50;padding:9px 12px;border:1px solid #34435a;border-radius:999px;background:#0d1422;color:#ccefff;text-decoration:none;font:11px ui-monospace,monospace;box-shadow:0 12px 32px rgba(0,0,0,.28)">EveDirector Review ↗</a>
 <div class="wrap" id="app"></div>
 <div class="modal-bg" id="modal"></div>
 <audio id="player"></audio>
+<script>
+  document.getElementById("agent-review-link").href = location.pathname.replace(/\/$/, "") + "/agent-review";
+</script>
 <script type="module" src="/ui/board.js"></script>
 </body>
 </html>
