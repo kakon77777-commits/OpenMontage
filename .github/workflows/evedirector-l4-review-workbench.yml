@@ -10,7 +10,7 @@ on:
       - "backlot/agent_review.py"
       - "backlot/server.py"
       - "backlot/ui/agent-review.*"
-      - "backlot/ui/board.js"
+      - "backlot/ui/board.html"
       - "tests/test_backlot_agent_review.py"
       - "docs/EVEDIRECTOR_L4_REVIEW_WORKBENCH.md"
       - ".github/workflows/evedirector-l4-review-workbench.yml"
@@ -32,7 +32,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install focused dependencies
-        run: python -m pip install pytest pyyaml fastapi httpx
+        run: python -m pip install -q pytest pyyaml fastapi httpx
 
       - name: Compile L4 modules
         run: |
@@ -40,10 +40,26 @@ jobs:
           python -m py_compile backlot/server.py
 
       - name: Run L3 and L4 focused tests
-        run: python -m pytest tests/test_evedirector_local_agent.py tests/test_backlot_agent_review.py -q
+        shell: bash
+        run: |
+          set +e
+          python -m pytest tests/test_evedirector_local_agent.py tests/test_backlot_agent_review.py -q --tb=short > l4-pytest.log 2>&1
+          status=$?
+          cat l4-pytest.log
+          exit $status
 
       - name: Verify UI contract markers
+        if: always()
         run: |
           grep -q "EveDirector Review" backlot/ui/agent-review.html
           grep -q "semanticChanges" backlot/ui/agent-review.js
           grep -q "BACKLOT_ENABLE_AGENT_ACTIONS" docs/EVEDIRECTOR_L4_REVIEW_WORKBENCH.md
+
+      - name: Upload L4 test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evedirector-l4-test-diagnostics
+          if-no-files-found: warn
+          retention-days: 30
+          path: l4-pytest.log
