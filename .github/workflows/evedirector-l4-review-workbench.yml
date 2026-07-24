@@ -1,0 +1,49 @@
+name: EveDirector L4 review workbench
+
+on:
+  push:
+    branches:
+      - evedirector-l4-review-workbench
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "backlot/agent_review.py"
+      - "backlot/server.py"
+      - "backlot/ui/agent-review.*"
+      - "backlot/ui/board.js"
+      - "tests/test_backlot_agent_review.py"
+      - "docs/EVEDIRECTOR_L4_REVIEW_WORKBENCH.md"
+      - ".github/workflows/evedirector-l4-review-workbench.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  review-workbench-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install focused dependencies
+        run: python -m pip install pytest pyyaml fastapi httpx
+
+      - name: Compile L4 modules
+        run: |
+          python -m py_compile backlot/agent_review.py
+          python -m py_compile backlot/server.py
+
+      - name: Run L3 and L4 focused tests
+        run: python -m pytest tests/test_evedirector_local_agent.py tests/test_backlot_agent_review.py -q
+
+      - name: Verify UI contract markers
+        run: |
+          grep -q "EveDirector Review" backlot/ui/agent-review.html
+          grep -q "semanticChanges" backlot/ui/agent-review.js
+          grep -q "BACKLOT_ENABLE_AGENT_ACTIONS" docs/EVEDIRECTOR_L4_REVIEW_WORKBENCH.md
