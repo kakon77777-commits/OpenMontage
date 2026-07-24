@@ -14,3 +14,18 @@ Design contract (see internal/design/LIVING_STORYBOARD.md):
 __version__ = "0.1.0"
 
 DEFAULT_PORT = 4750
+
+
+def _register_evedirector_extensions() -> None:
+    """Attach optional EveDirector routes before Backlot builds its app.
+
+    The L5 editor router is nested under the already isolated L4 review router,
+    so the normal board remains unchanged and the action gate stays shared.
+    """
+    from backlot.agent_edit import router as agent_edit_router
+    from backlot.agent_review import router as agent_review_router
+
+    agent_review_router.include_router(agent_edit_router)
+
+
+_register_evedirector_extensions()
