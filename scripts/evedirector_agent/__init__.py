@@ -14,11 +14,12 @@ from .providers import (
     candidate_from_payload,
     extract_json_object,
 )
-from .runs import (
+from .review import (
     apply_run,
     propose,
     reject_run,
     run_status,
+    semantic_diff_text,
     validate_run,
 )
 
@@ -39,5 +40,6 @@ __all__ = [
     "propose",
     "reject_run",
     "run_status",
+    "semantic_diff_text",
     "validate_run",
 ]
