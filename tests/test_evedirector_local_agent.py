@@ -122,8 +122,13 @@ def test_fixture_proposal_is_review_only(tmp_path: Path) -> None:
     run_dir = Path(result["run_dir"])
     assert (run_dir / "candidate.video_spec.yaml").is_file()
     assert (run_dir / "candidate.diff").is_file()
+    assert (run_dir / "candidate.unified.diff").is_file()
+    semantic_diff = (run_dir / "candidate.diff").read_text(encoding="utf-8")
+    assert "/scenes/divergence/narration" in semantic_diff
+    assert "/scenes/old-vs-drc" not in semantic_diff
     audit = json.loads((run_dir / "audit.json").read_text(encoding="utf-8"))
     assert audit["validation"]["valid"] is True
+    assert audit["semantic_change_count"] == 1
     assert audit["status"] == "awaiting_human"
 
 
