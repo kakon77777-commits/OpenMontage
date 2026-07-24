@@ -12,7 +12,7 @@ from .common import (
     DEFAULT_RUN_ROOT,
     DEFAULT_SPEC,
 )
-from .runs import apply_run, propose, reject_run, run_status, validate_run
+from .review import apply_run, propose, reject_run, run_status, validate_run
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -67,7 +67,9 @@ def emit(payload: dict[str, Any], *, as_json: bool) -> None:
     if payload.get("candidate"):
         print(f"Candidate: {payload['candidate']}")
     if payload.get("diff"):
-        print(f"Diff: {payload['diff']}")
+        print(f"Semantic diff: {payload['diff']}")
+    if payload.get("raw_diff"):
+        print(f"Raw YAML diff: {payload['raw_diff']}")
     if payload.get("canonical_spec"):
         print(f"Canonical spec: {payload['canonical_spec']}")
 
