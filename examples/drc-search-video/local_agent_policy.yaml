@@ -1,0 +1,57 @@
+version: 1
+candidate_only: true
+source_grounding: required
+exact_top_level_keys: true
+immutable_fields:
+  - version
+  - project_id
+  - pipeline_type
+  - author
+  - source_path
+  - composition
+  - output_path
+  - language
+allowed_cut_types:
+  - hero_title
+  - comparison
+  - callout
+  - terminal_scene
+allowed_cut_fields:
+  - type
+  - in_seconds
+  - out_seconds
+  - text
+  - subtitle
+  - title
+  - leftLabel
+  - leftValue
+  - rightLabel
+  - rightValue
+  - callout_type
+  - accentColor
+  - backgroundColor
+  - color
+  - terminalTitle
+  - prompt
+  - steps
+allowed_overlay_fields:
+  - type
+  - in_seconds
+  - out_seconds
+  - text
+  - subtitle
+  - accentColor
+max_duration_seconds: 180
+max_scene_count: 20
+max_narration_characters: 1200
+network:
+  local_only_default: true
+  allowed_schemes:
+    - http
+    - https
+  block_redirects: true
+  max_response_bytes: 4194304
+apply:
+  require_approve_flag: true
+  require_reviewer: true
+  reject_stale_baseline: true
