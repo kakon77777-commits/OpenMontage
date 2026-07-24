@@ -2,7 +2,9 @@
 
 The watcher observes ``projects/`` with watchfiles; on any change it bumps a
 per-project version and wakes SSE subscribers, who tell the browser to
-refetch state. The server never writes to project directories.
+refetch state. The normal board remains read-only. EveDirector L4 review
+writes are isolated behind an explicit environment flag and still delegate to
+the L3 validation/apply/reject contract.
 """
 
 from __future__ import annotations
@@ -17,6 +19,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from backlot.agent_review import router as agent_review_router
 from backlot.state import PROJECTS_DIR, REPO_ROOT, list_projects, load_board_state, summarize_project
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
@@ -149,6 +152,7 @@ async def _watch_projects() -> None:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Backlot", docs_url=None, redoc_url=None)
+    app.include_router(agent_review_router)
 
     @app.on_event("startup")
     async def _startup() -> None:
@@ -271,6 +275,14 @@ def create_app() -> FastAPI:
         return FileResponse(target)
 
     # ---- UI ------------------------------------------------------------
+
+    @app.get("/p/{project_id}/agent-review")
+    async def agent_review_page(project_id: str) -> HTMLResponse:
+        _safe_project_dir(project_id)
+        return _ui_html(
+            "agent-review.html",
+            ("agent-review.css", "agent-review.js"),
+        )
 
     @app.get("/p/{project_id}")
     async def board_page(project_id: str) -> HTMLResponse:
