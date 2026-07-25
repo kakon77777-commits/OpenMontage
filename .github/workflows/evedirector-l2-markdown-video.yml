@@ -12,6 +12,9 @@ on:
       - "examples/drc-search-video/**"
       - "tests/test_markdown_to_video.py"
       - "docs/EVEDIRECTOR_L2_MARKDOWN_VIDEO.md"
+      - "backlot/__init__.py"
+      - "backlot/director.py"
+      - "backlot/ui/director.*"
       - ".github/workflows/evedirector-l2-markdown-video.yml"
   workflow_dispatch:
 
