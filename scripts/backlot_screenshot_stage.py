@@ -186,13 +186,13 @@ def stage_project(pid: str, title: str, palette: str, scenes: list, *,
 
     script = script_artifact(title, scenes)
     plan = scene_plan_artifact(scenes, hero)
-    (art_dir / "decision_log.json").write_text(json.dumps(decision_log(pid), indent=2))
+    (art_dir / "decision_log.json").write_text(json.dumps(decision_log(pid), indent=2), encoding="utf-8")
 
     if state == "early":
         cp("script", "in_progress", {})
         return
 
-    (art_dir / "script.json").write_text(json.dumps(script, indent=2))
+    (art_dir / "script.json").write_text(json.dumps(script, indent=2), encoding="utf-8")
     if state == "script_gate":
         cp("script", "awaiting_human", {"script": script},
            review={"round": 1, "decision": "pass", "critical": 0,
@@ -204,7 +204,7 @@ def stage_project(pid: str, title: str, palette: str, scenes: list, *,
        review={"round": 1, "decision": "pass", "critical": 0, "suggestions": 1,
                "nitpicks": 0, "summary": "Strong spine; trimmed s2."})
     cp("script", "completed", {"script": script}, human_approved=True)
-    (art_dir / "scene_plan.json").write_text(json.dumps(plan, indent=2))
+    (art_dir / "scene_plan.json").write_text(json.dumps(plan, indent=2), encoding="utf-8")
     cp("scene_plan", "awaiting_human", {"scene_plan": plan})
     cp("scene_plan", "completed", {"scene_plan": plan}, human_approved=True)
 
@@ -229,7 +229,7 @@ def stage_project(pid: str, title: str, palette: str, scenes: list, *,
         emit_event(pdir, {"tool": "flux_image", "event": "finish", "scene_id": sid,
                           "success": True, "cost_usd": 0.04 * n_takes, "duration_s": 18.4,
                           "output_path": rel})
-        (art_dir / "asset_manifest.json").write_text(json.dumps(manifest, indent=2))
+        (art_dir / "asset_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         write_checkpoint(STAGE_DIR, pid, "assets", "in_progress", {},
                          pipeline_type="cinematic",
                          metadata={"partial_progress": {
@@ -252,7 +252,7 @@ def stage_project(pid: str, title: str, palette: str, scenes: list, *,
 
     # edit + compose (render via ffmpeg slideshow from the frames)
     edit = {"version": "1.0", "cuts": [], "metadata": {"note": "demo"}}
-    (art_dir / "edit_decisions.json").write_text(json.dumps(edit, indent=2))
+    (art_dir / "edit_decisions.json").write_text(json.dumps(edit, indent=2), encoding="utf-8")
     renders = pdir / "renders"
     renders.mkdir(exist_ok=True)
     first_frame = pdir / "assets" / "images" / f"{scenes[0][0]}.png"

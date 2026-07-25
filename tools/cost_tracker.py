@@ -496,11 +496,11 @@ class CostTracker:
             "entries": self.entries,
         }
         self.cost_log_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(self.cost_log_path, "w") as f:
+        with open(self.cost_log_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     def _load(self) -> None:
-        with open(self.cost_log_path) as f:  # type: ignore[arg-type]
+        with open(self.cost_log_path, encoding="utf-8") as f:  # type: ignore[arg-type]
             data = json.load(f)
         self.entries = data.get("entries", [])
         self.budget_total_usd = data.get("budget_total_usd", self.budget_total_usd)
