@@ -19,13 +19,16 @@ DEFAULT_PORT = 4750
 def _register_evedirector_extensions() -> None:
     """Attach optional EveDirector routes before Backlot builds its app.
 
-    The L5 editor router is nested under the already isolated L4 review router,
-    so the normal board remains unchanged and the action gate stays shared.
+    L5 semantic writes and L6 unified views are nested under the isolated L4
+    review router. The L6 router is read-only; all semantic submission remains
+    delegated to L5's derived-run endpoint and the L3/L4 authority gates.
     """
     from backlot.agent_edit import router as agent_edit_router
     from backlot.agent_review import router as agent_review_router
+    from backlot.director import router as director_router
 
     agent_review_router.include_router(agent_edit_router)
+    agent_review_router.include_router(director_router)
 
 
 _register_evedirector_extensions()
