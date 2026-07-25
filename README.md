@@ -78,6 +78,11 @@ named run id. A stale candidate cannot be applied.
 Hosted / containerised deployment is documented separately in
 [`docs/WEB_RUNTIME.md`](docs/WEB_RUNTIME.md) (`Dockerfile.web`, `docker-compose.web.yml`).
 
+The original Traditional Chinese acceptance report and local handoff manual are kept as project
+records in [`docs/EVEDIRECTOR_L6_ACCEPTANCE_REPORT_zh-TW.md`](docs/EVEDIRECTOR_L6_ACCEPTANCE_REPORT_zh-TW.md)
+and [`docs/EVEDIRECTOR_L0-L6_HANDOFF_zh-TW.md`](docs/EVEDIRECTOR_L0-L6_HANDOFF_zh-TW.md), each with a
+note marking which of their branch instructions `main` has since superseded.
+
 ---
 
 ## Quick start
