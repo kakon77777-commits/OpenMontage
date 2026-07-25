@@ -3,7 +3,7 @@ name: EveDirector L6 unified workbench
 on:
   push:
     branches:
-      - evedirector-l6-unified-workbench
+      - main
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:

@@ -1,0 +1,121 @@
+name: EveDirector L3 local agent
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "scripts/evedirector_local_agent.py"
+      - "scripts/evedirector_agent/**"
+      - "scripts/evedirector-l3.ps1"
+      - "examples/drc-search-video/local_agent_policy.yaml"
+      - "prompts/evedirector_local_video_spec.md"
+      - "tests/test_evedirector_local_agent.py"
+      - "docs/EVEDIRECTOR_L3_LOCAL_AGENT.md"
+      - ".github/workflows/evedirector-l3-local-agent.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  local-agent-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install focused dependencies
+        run: python -m pip install pytest pyyaml jsonschema
+
+      - name: Compile L3 modules
+        run: |
+          python -m py_compile scripts/evedirector_local_agent.py
+          python -m py_compile scripts/evedirector_agent/*.py
+
+      - name: Parse Windows wrapper
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "scripts/evedirector-l3.ps1",
+            [ref]$tokens,
+            [ref]$errors
+          ) | Out-Null
+          if ($errors.Count -gt 0) {
+            $errors | ForEach-Object { Write-Error $_.Message }
+            exit 1
+          }
+
+      - name: Run L2 and L3 focused tests
+        run: |
+          python -m pytest tests/test_markdown_to_video.py tests/test_evedirector_local_agent.py -q
+
+      - name: Run zero-model proposal integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ROOT="$RUNNER_TEMP/evedirector-l3-runs"
+          RESPONSE="$RUNNER_TEMP/evedirector-l3-response.json"
+          SPEC="examples/drc-search-video/video_spec.yaml"
+          BEFORE="$(sha256sum "$SPEC" | cut -d' ' -f1)"
+
+          python - "$RESPONSE" <<'PY'
+          import json
+          import sys
+          import yaml
+
+          output = sys.argv[1]
+          with open("examples/drc-search-video/video_spec.yaml", encoding="utf-8") as handle:
+              spec = yaml.safe_load(handle)
+          scene = next(item for item in spec["scenes"] if item["id"] == "divergence")
+          scene["narration"] = (
+              "Divergence treats a query as a seed and opens multiple grounded directions."
+          )
+          with open(output, "w", encoding="utf-8") as handle:
+              json.dump(
+                  {
+                      "video_spec": spec,
+                      "rationale": "CI contract proposal",
+                      "changed_scene_ids": ["divergence"],
+                      "assumptions": [],
+                  },
+                  handle,
+                  ensure_ascii=False,
+              )
+          PY
+
+          python scripts/evedirector_local_agent.py \
+            --json \
+            --run-root "$RUN_ROOT" \
+            propose \
+            --provider fixture \
+            --response-file "$RESPONSE" \
+            --instruction "CI contract proposal"
+
+          python scripts/evedirector_local_agent.py \
+            --json \
+            --run-root "$RUN_ROOT" \
+            validate \
+            --run-id latest
+
+          AFTER="$(sha256sum "$SPEC" | cut -d' ' -f1)"
+          test "$BEFORE" = "$AFTER"
+          test -f "$RUN_ROOT/latest.json"
+
+      - name: Upload local-agent audit bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: evedirector-l3-local-agent-audit
+          if-no-files-found: warn
+          retention-days: 30
+          path: ${{ runner.temp }}/evedirector-l3-runs

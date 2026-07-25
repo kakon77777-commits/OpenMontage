@@ -3,7 +3,7 @@ name: EveDirector local-first
 on:
   push:
     branches:
-      - evedirector-local-first
+      - main
   pull_request:
     paths:
       - "scripts/evedirector_local_first.py"

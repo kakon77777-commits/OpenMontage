@@ -3,7 +3,7 @@ name: EveDirector L2 Markdown video
 on:
   push:
     branches:
-      - evedirector-l2-markdown-video
+      - main
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:

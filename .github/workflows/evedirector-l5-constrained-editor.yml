@@ -3,7 +3,7 @@ name: EveDirector L5 constrained editor
 on:
   push:
     branches:
-      - evedirector-l5-constrained-editor
+      - main
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:

@@ -3,7 +3,7 @@ name: EveDirector L4 review workbench
 on:
   push:
     branches:
-      - evedirector-l4-review-workbench
+      - main
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
