@@ -4,6 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "scripts/evedirector_local_first.py"
+      - "scripts/evedirector-local-first.ps1"
+      - "tests/test_evedirector_local_first.py"
+      - "docs/EVEDIRECTOR_LOCAL_FIRST.md"
+      - "Makefile"
+      - ".github/workflows/evedirector-local-first.yml"
   pull_request:
     paths:
       - "scripts/evedirector_local_first.py"
@@ -16,6 +23,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: evedirector-local-first-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   harness-contracts:

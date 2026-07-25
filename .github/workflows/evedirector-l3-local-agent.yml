@@ -4,6 +4,15 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "scripts/evedirector_local_agent.py"
+      - "scripts/evedirector_agent/**"
+      - "scripts/evedirector-l3.ps1"
+      - "examples/drc-search-video/local_agent_policy.yaml"
+      - "prompts/evedirector_local_video_spec.md"
+      - "tests/test_evedirector_local_agent.py"
+      - "docs/EVEDIRECTOR_L3_LOCAL_AGENT.md"
+      - ".github/workflows/evedirector-l3-local-agent.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -19,6 +28,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: evedirector-l3-local-agent-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   local-agent-contracts:

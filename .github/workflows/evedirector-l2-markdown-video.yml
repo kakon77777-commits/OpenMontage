@@ -4,6 +4,18 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "scripts/markdown_to_video.py"
+      - "scripts/evedirector-l2.ps1"
+      - "examples/drc-search-video/**"
+      - "tests/test_markdown_to_video.py"
+      - "docs/EVEDIRECTOR_L2_MARKDOWN_VIDEO.md"
+      - "backlot/__init__.py"
+      - "backlot/director.py"
+      - "backlot/ui/director.*"
+      - "lib/**"
+      - "schemas/**"
+      - ".github/workflows/evedirector-l2-markdown-video.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -15,11 +27,17 @@ on:
       - "backlot/__init__.py"
       - "backlot/director.py"
       - "backlot/ui/director.*"
+      - "lib/**"
+      - "schemas/**"
       - ".github/workflows/evedirector-l2-markdown-video.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: evedirector-l2-markdown-video-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   grounding-contracts:

@@ -4,6 +4,14 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "backlot/__init__.py"
+      - "backlot/director.py"
+      - "backlot/ui/director.*"
+      - "backlot/ui/agent-review-l5.js"
+      - "tests/test_evedirector_unified_workbench.py"
+      - "docs/EVEDIRECTOR_L6_UNIFIED_WORKBENCH.md"
+      - ".github/workflows/evedirector-l6-unified-workbench.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -18,6 +26,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: evedirector-l6-unified-workbench-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   unified-workbench-contracts:

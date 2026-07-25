@@ -4,6 +4,20 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "backlot/__init__.py"
+      - "backlot/agent_edit.py"
+      - "backlot/ui/agent-edit.*"
+      - "backlot/ui/agent-review-l5.js"
+      - "backlot/ui/agent-review.html"
+      - "scripts/evedirector_agent/editing.py"
+      - "scripts/evedirector_agent/editing_guard.py"
+      - "examples/drc-search-video/local_agent_policy.yaml"
+      - "tests/test_evedirector_constrained_editor.py"
+      - "tests/test_evedirector_editor_guard.py"
+      - "docs/EVEDIRECTOR_L5_CONSTRAINED_EDITOR.md"
+      - "docs/EVEDIRECTOR_L5_OVERLAY_TIMELINE_GUARD.md"
+      - ".github/workflows/evedirector-l5-constrained-editor.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
     paths:
@@ -24,6 +38,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: evedirector-l5-constrained-editor-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   constrained-editor-contracts:
