@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse
 
 from backlot import agent_edit
 from backlot import agent_review as review
+from evedirector_agent.common import load_yaml
 
 UI_DIR = Path(__file__).resolve().parent / "ui"
 router = APIRouter()
@@ -37,6 +38,13 @@ def _node_by_id(nodes: list[dict[str, Any]], node_id: str) -> dict[str, Any] | N
 def _unified_detail(project_id: str, run_id: str) -> dict[str, Any]:
     detail = agent_edit._editable_detail(project_id, run_id)
     editor = detail["editor"]
+    project_dir = review._safe_project_dir(project_id)
+    run_dir = review._safe_run(project_dir, run_id)
+    audit = review._read_object(run_dir / "audit.json")
+    candidate = load_yaml(review._candidate_file(run_dir, audit))
+    overlays = candidate.get("overlays")
+    overlay_count = len(overlays) if isinstance(overlays, list) else 0
+    contract = {**(editor.get("contract") or {}), "overlay_count": overlay_count}
     scenes = editor.get("scenes") or []
     scene_ids = [str(scene.get("id") or "") for scene in scenes]
     graph = detail.get("graph") or {"nodes": [], "edges": []}
@@ -108,7 +116,7 @@ def _unified_detail(project_id: str, run_id: str) -> dict[str, Any]:
         "model": {
             "project": editor.get("project"),
             "scenes": scenes,
-            "contract": editor.get("contract"),
+            "contract": contract,
         },
         "views": {
             "canvas": {
@@ -121,9 +129,9 @@ def _unified_detail(project_id: str, run_id: str) -> dict[str, Any]:
             "workflow": workflow,
             "timeline": timeline,
             "inspector": {
-                "project_fields": editor.get("contract", {}).get("project_fields", []),
-                "cut_fields": editor.get("contract", {}).get("cut_fields", []),
-                "immutable_scene_fields": editor.get("contract", {}).get("immutable_scene_fields", []),
+                "project_fields": contract.get("project_fields", []),
+                "cut_fields": contract.get("cut_fields", []),
+                "immutable_scene_fields": contract.get("immutable_scene_fields", []),
             },
         },
     }
