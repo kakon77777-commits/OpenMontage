@@ -13,7 +13,9 @@ This document defines how sponsor logos are added to the OpenMontage README.
 
 ## README Snippet
 
-Add each sponsor as a table row inside the `Sponsors` section near the top of `README.md`:
+Add each sponsor as a table row inside the `Sponsors` section near the top of
+`docs/UPSTREAM_README.md`. This guidance is inherited from upstream OpenMontage and applies to
+upstream's sponsors; the EveDirector `README.md` carries no sponsor section.
 
 ```html
 <tr>
